@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aurona"
-dependencies = []
+dependencies = ["openai>=2.44.0", "black>=26.5.1"]
 requires-python = ">=3.13"
 dynamic = ["version"]
 
@@ -16,3 +16,6 @@ path = "src/aurona/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/aurona"]
+
+[tool.black]
+target-version = ["py313"]
