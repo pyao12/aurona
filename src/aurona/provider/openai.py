@@ -16,8 +16,8 @@ class OpenAIConnection:
     def __init__(self, url: str, key: str):
         self._openai_client = OpenAI(api_key=key, base_url=url)
 
-    def get_completions(self, messages_history: list, model: str) -> str:
+    def get_completions(self, messages_history: list, model: str):
         completion = self._openai_client.chat.completions.create(
             model=model, messages=messages_history
         )
-        return completion.choices[0].message.content
+        return completion.choices[0].message

@@ -13,20 +13,22 @@ from aurona.im.weixin_oc.send import send_text
 
 client: openai.OpenAIConnection | None = None
 model: str | None = None
+history = []
 
 
 def loop():
     # 程序的主循环，将一直监听消息并回答
     def generate_answer(
-        question: str, client: openai.OpenAIConnection, model: str
+        history: list, client: openai.OpenAIConnection, model: str
     ) -> list:
         try:
-            answer = client.get_completions(openai.build_temp_history(question), model)
+            answer = client.get_completions(history, model)
             return [True, answer]
         except OpenAIError as e:
             return [False, e]
 
     def on_message(msg):
+        global history
         text = ""
         for item in msg.get("item_list", []):
             ti = item.get("text_item")
@@ -35,18 +37,26 @@ def loop():
                 break
         user_id = msg.get("from_user_id", "")
         if user_id and text:
+            if text == "/new":
+                history = []
+                send_text(user_id, f"Reset conversation history.")
+                return
+
             if client is None or model is None:
                 warn("Client or model not initialized")
                 return
             info(f"Received msg: {text}")
-            ok, data = generate_answer(text, client, model)
-            if not ok:
-                warn(data)
-                send_text(user_id, f"API Request Failed: {data}")
+            history.append({"role": "user", "content": text})
+            try:
+                answer = client.get_completions(history, model)
+                history.append(answer)
+            except OpenAIError as e:
+                warn(str(e))
+                send_text(user_id, f"API Request Failed: {e}")
                 return
-            send_text(user_id, data)
+            send_text(user_id, answer.content)
             # send_text(user_id, f"Hello: {text}")
-            info(f"Replied to {user_id}: {data}")
+            info(f"Replied to {user_id}: {answer.content}")
         else:
             warn(f"Skipping msg: user_id={user_id} text={text!r}")
 
