@@ -1,5 +1,6 @@
 # OpenAI Compatible接口
 
+import aurona.logger as logger
 from openai import OpenAI
 
 

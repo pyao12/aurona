@@ -3,31 +3,32 @@ from . import __version__
 import sys
 from aurona.provider import openai
 import aurona.config as config
+from aurona.logger import info, warn, error
 
 
 def main():
-    print(f"Welcome to Aurona (version {__version__})")
+    info(f"Welcome to Aurona (version {__version__})")
 
     conf = config.load_config()
     if conf == -1:
-        print("Configuration file not found.")
+        error("Configuration file not found.")
         return 1
 
     if type(conf) != dict:
-        print("Invalid config format!")
+        error("Invalid config format!")
         return 1
 
     if not config.check_schema(conf):
-        print("Invalid config format!")
+        error("Invalid config format!")
         return 1
 
     try:
         QUESTION = sys.argv[1]
     except IndexError:
-        print("Please give your question!")
+        error("Please give your question!")
         return 1
 
-    print(f"Question: {QUESTION}")
+    info(f"Question: {QUESTION}")
 
     connection = openai.OpenAIConnection(
         conf["provider"]["baseurl"], conf["provider"]["apikey"]
@@ -37,8 +38,8 @@ def main():
     answer = connection.get_completions(
         openai.build_temp_history(QUESTION), "deepseek-v4-flash"
     )
-    print("=" * 20)
-    print(answer)
-    print("=" * 20)
+    info("")
+    info(answer)
+    info("")
 
     return 0  # C++写多了哈哈
