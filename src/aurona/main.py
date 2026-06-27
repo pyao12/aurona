@@ -1,34 +1,28 @@
-from . import __version__
+"""Aurona 机器人入口。"""
 
-import sys
 import signal
+import sys
+
 from openai import OpenAIError
-from aurona.provider import openai
-import aurona.config as config
-from aurona.logger import info, warn, error
+
+from aurona import __version__
 from aurona.im.weixin_oc import login
 from aurona.im.weixin_oc.common import notify_start, notify_stop
 from aurona.im.weixin_oc.receive import run_long_poll_loop
 from aurona.im.weixin_oc.send import send_text
+from aurona.logger import error, info, warn
+from aurona.provider import openai
 
-client: openai.OpenAIConnection | None = None
-model: str | None = None
-history = []
+CLIENT: openai.OpenAIConnection | None = None
+MODEL: str | None = None
+HISTORY: list = []
 
 
 def loop():
-    # 程序的主循环，将一直监听消息并回答
-    def generate_answer(
-        history: list, client: openai.OpenAIConnection, model: str
-    ) -> list:
-        try:
-            answer = client.get_completions(history, model)
-            return [True, answer]
-        except OpenAIError as e:
-            return [False, e]
+    """主消息循环：持续监听消息并回复。"""
 
-    def on_message(msg):
-        global history
+    def _on_message(msg):
+        global HISTORY  # pylint: disable=global-statement
         text = ""
         for item in msg.get("item_list", []):
             ti = item.get("text_item")
@@ -38,25 +32,24 @@ def loop():
         user_id = msg.get("from_user_id", "")
         if user_id and text:
             if text == "/new":
-                history = []
-                send_text(user_id, f"Reset conversation history.")
+                HISTORY = []
+                send_text(user_id, "Reset conversation history.")
                 return
 
-            if client is None or model is None:
+            if CLIENT is None or MODEL is None:
                 warn("Client or model not initialized")
                 return
             info(f"Received msg: {text}")
-            history.append({"role": "user", "content": text})
+            HISTORY.append({"role": "user", "content": text})
             try:
-                answer = client.get_completions(history, model)
-                history.append(answer)
-            except OpenAIError as e:
-                warn(str(e))
-                send_text(user_id, f"API Request Failed: {e}")
+                answer = CLIENT.get_completions(HISTORY, MODEL)
+                HISTORY.append(answer)
+            except OpenAIError as exc:
+                warn(str(exc))
+                send_text(user_id, f"API Request Failed: {exc}")
                 return
             if answer.content:
                 send_text(user_id, answer.content or "")
-                # send_text(user_id, f"Hello: {text}")
                 info(f"Replied to {user_id}: {answer.content}")
 
         else:
@@ -65,26 +58,27 @@ def loop():
     try:
         resp = notify_start()
         info(f"notifyStart: ret={resp.get('ret')}")
-    except Exception as e:
-        warn(f"notifyStart failed (ignored): {e}")
+    except (RuntimeError, OpenAIError) as exc:
+        warn(f"notifyStart failed (ignored): {exc}")
 
-    def shutdown(sig, frame):
+    def _shutdown(_sig, _frame):
         info("Shutting down...")
         try:
             notify_stop()
-        except Exception:
+        except RuntimeError, OpenAIError:
             pass
         sys.exit(0)
 
-    signal.signal(signal.SIGINT, shutdown)
-    signal.signal(signal.SIGTERM, shutdown)
+    signal.signal(signal.SIGINT, _shutdown)
+    signal.signal(signal.SIGTERM, _shutdown)
 
     info("Starting message loop...")
-    run_long_poll_loop(on_message=on_message)
+    run_long_poll_loop(on_message=_on_message)
 
 
-def main():
-    global client, model
+def main() -> int:
+    """主入口：连接或启动机器人。"""
+    global CLIENT, MODEL  # pylint: disable=global-statement
     info(f"Welcome to Aurona (version {__version__})")
 
     if len(sys.argv) <= 1:
@@ -92,19 +86,31 @@ def main():
         return 1
 
     if sys.argv[1] == "connect":
-        login.connect()
+        try:
+            login.connect()
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            error(f"Connect failed: {exc}")
+            return 1
     elif sys.argv[1] == "run":
+        from aurona import config  # pylint: disable=import-outside-toplevel
+
         conf = config.load_config()
         if isinstance(conf, int):
-            error("File not found!")
+            error("Cannot read file! ")
             return 1
 
         if not config.check_schema(conf):
-            error("Invalid config file")
+            error("Invalid config file!")
             return 1
 
-        client = openai.OpenAIConnection(
-            conf["provider"]["baseurl"], conf["provider"]["apikey"]
-        )
-        model = conf["provider"]["model"]
+        try:
+            CLIENT = openai.OpenAIConnection(
+                conf["provider"]["baseurl"], conf["provider"]["apikey"]
+            )
+        except RuntimeError as exc:
+            error(f"Failed to initialize provider: {exc}")
+            return 1
+        MODEL = conf["provider"]["model"]
         loop()
+
+    return 0

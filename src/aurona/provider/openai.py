@@ -1,23 +1,28 @@
-# OpenAI Compatible接口
+"""兼容 OpenAI 的聊天补全接口封装。"""
 
-import aurona.logger as logger
-from openai import OpenAI
+from openai import OpenAI, OpenAIError
 
 
-# 因为completions请求必须传递整个history，所以有这么个函数构建临时的消息列表
-# responses请求就不用了
 def build_temp_history(message: str) -> list:
+    """为补全请求构建单条历史消息列表。"""
     return [{"role": "user", "content": message}]
 
 
-class OpenAIConnection:
-    # OpenAI Compatible接口的连接实例，方便同时连接多个providers
+class OpenAIConnection:  # pylint: disable=too-few-public-methods
+    """兼容 OpenAI 的聊天补全端点封装。"""
 
     def __init__(self, url: str, key: str):
-        self._openai_client = OpenAI(api_key=key, base_url=url)
+        try:
+            self._openai_client = OpenAI(api_key=key, base_url=url)
+        except OpenAIError as exc:
+            raise RuntimeError(f"Failed to create OpenAI client: {exc}") from exc
 
     def get_completions(self, messages_history: list, model: str):
-        completion = self._openai_client.chat.completions.create(
-            model=model, messages=messages_history
+        """根据 *messages_history* 获取助手回复。"""
+        return (
+            self._openai_client.chat.completions.create(
+                model=model, messages=messages_history
+            )
+            .choices[0]
+            .message
         )
-        return completion.choices[0].message
