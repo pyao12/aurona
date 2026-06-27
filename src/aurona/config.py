@@ -1,7 +1,7 @@
 import json
 
 
-def load_config(config_path="data/config.json"):
+def load_config(config_path="data/config.json") -> dict | int:
     try:
         with open(config_path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -16,6 +16,7 @@ def check_schema(handle: dict) -> bool:
         not handle["provider"].get("name")
         or not handle["provider"].get("baseurl")
         or not handle["provider"].get("apikey")
+        or not handle["provider"].get("model")
     ):
         return False
     return True

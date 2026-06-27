@@ -1,29 +1,13 @@
 import json
 import os
-import random
-import base64
 import time
 
 import requests
 from aurona.logger import info, warn, error
+from aurona.im.weixin_oc.common import BASE_URL, _build_headers
 
-BASE_URL = "https://ilinkai.weixin.qq.com"
 QR_LONG_POLL_TIMEOUT_MS = 35_000
 AUTH_FILE = "data/auth_weixin_oc.json"
-
-
-def _random_wechat_uin() -> str:
-    return base64.encodebytes(str(random.getrandbits(32)).encode()).decode().strip()
-
-
-def _build_headers() -> dict:
-    return {
-        "Content-Type": "application/json",
-        "AuthorizationType": "ilink_bot_token",
-        "X-WECHAT-UIN": _random_wechat_uin(),
-        "iLink-App-Id": "bot",
-        "iLink-App-ClientVersion": "0",
-    }
 
 
 def _save_auth(data: dict):
@@ -42,7 +26,7 @@ def fetch_qrcode() -> str | None:
         data = resp.json()
         if data.get("ret") == 0:
             qrcode_url = data.get("qrcode_img_content", "")
-            info(f"Scan this QR code or visit: {qrcode_url}")
+            info(f"Visit, and scan the QRCode: {qrcode_url}")
             return data.get("qrcode")
         else:
             error(f"API error: ret={data.get('ret')}")
