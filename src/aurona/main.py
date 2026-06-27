@@ -1,41 +1,25 @@
 from . import __version__
 
-import json
 import sys
 from aurona.provider import openai
+import aurona.config as config
 
 
 def main():
     print(f"Welcome to Aurona (version {__version__})")
 
-    try:
-        with open("data/providers.json", "r", encoding="utf-8") as f:
-            providers = json.loads(f.read())
-    except FileNotFoundError:
-        print("No providers found!")
+    conf = config.load_config()
+    if conf == -1:
+        print("Configuration file not found.")
         return 1
 
-    try:
-        test_provider = providers[0]
-    except IndexError:
-        print("No providers found!")
+    if type(conf) != dict:
+        print("Invalid config format!")
         return 1
 
-    # 太不优雅了 (
-    if (
-        not test_provider.get("name")
-        or not test_provider.get("display")
-        or not test_provider.get("api-key")
-        or not test_provider.get("baseurl")
-    ):
-        print("Providers didn't configured correctly!")
+    if not config.check_schema(conf):
+        print("Invalid config format!")
         return 1
-
-    print(f"Test with {test_provider.get("display")}")
-    print("Creating client...")
-    connection = openai.OpenAIConnection(
-        test_provider.get("baseurl"), test_provider.get("api-key")
-    )
 
     try:
         QUESTION = sys.argv[1]
@@ -44,6 +28,10 @@ def main():
         return 1
 
     print(f"Question: {QUESTION}")
+
+    connection = openai.OpenAIConnection(
+        conf["provider"]["baseurl"], conf["provider"]["apikey"]
+    )
 
     # 作者用的Deepseek作为测试，当然只是测试啦，后面会有更优秀的数据存储
     answer = connection.get_completions(
