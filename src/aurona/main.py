@@ -54,9 +54,11 @@ def loop():
                 warn(str(e))
                 send_text(user_id, f"API Request Failed: {e}")
                 return
-            send_text(user_id, answer.content)
-            # send_text(user_id, f"Hello: {text}")
-            info(f"Replied to {user_id}: {answer.content}")
+            if answer.content:
+                send_text(user_id, answer.content or "")
+                # send_text(user_id, f"Hello: {text}")
+                info(f"Replied to {user_id}: {answer.content}")
+
         else:
             warn(f"Skipping msg: user_id={user_id} text={text!r}")
 
