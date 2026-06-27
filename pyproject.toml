@@ -19,3 +19,6 @@ packages = ["src/aurona"]
 
 [tool.black]
 target-version = ["py313"]
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
