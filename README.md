@@ -1,2 +1,3 @@
 # aurona
-Aurona | 基于Python的个人健康管理工具，支持IM
+
+Aurona | 基于Python的办公智能体助手，支持IM

@@ -2,7 +2,6 @@
 
 import json
 import time
-
 import requests
 
 from aurona.im.weixin_oc.common import _load_auth, _post

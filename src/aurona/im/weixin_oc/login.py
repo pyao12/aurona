@@ -2,7 +2,6 @@
 
 import json
 import time
-
 import requests
 
 from aurona.im.weixin_oc.common import BASE_URL, _build_headers
@@ -13,7 +12,7 @@ AUTH_FILE = "data/auth_weixin_oc.json"
 
 
 def _save_auth(data: dict):
-    """将认证数据持久化到磁盘并设置受限权限。"""
+    """将认证数据持久化到磁盘。"""
     try:
         with open(AUTH_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)

@@ -1,7 +1,6 @@
 """基于 Rich 的彩色控制台日志。"""
 
 from datetime import datetime
-
 from rich.console import Console
 
 console = Console()
